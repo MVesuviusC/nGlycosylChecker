@@ -115,12 +115,29 @@ while(my $line = <MUTATIONS>) {
     my (undef, undef, $aaChange) = split "\t", $line;
     $aaChange =~ s/^p.//;
     
+    ## Check if $aaChange is premature stop
+    if($aaChange =~ /\*/) {
+	print $line, "\n\n\nInvalid mutation type (premature stop)!\n\n\n";
+	die;
+    }
+
     my $pos = substr($aaChange, 3);
     $pos =~ s/...$//;
-    
+    # Make sure position is a number
+    if($pos =~ /[a-zA-Z]/) {
+	print STDERR "\n\n\nError in mutation information!\n", $line, "\n\n\n";
+	die;
+    }
+
     # get original and mutant proteins from mutation info
     my $origAA = lc(substr($aaChange, 0, 3));
     my $mutAA = lc(substr($aaChange, -3, 3));
+
+    # Check that $origAA and $mutAA are amino acids
+    if(!defined($aaCodeHash{$origAA}) || !defined($aaCodeHash{$mutAA})) {
+	print STDERR "\n\n\nError in mutation information!\n", $line, "\n\n\n";
+	die;
+    }
     
     # Get five five AA sequence surrounding mutated AA (2 on either side)
     #    - Unless the AA is within 3 of the ends of the sequence, in which case
@@ -145,7 +162,7 @@ while(my $line = <MUTATIONS>) {
 	    "Amino acid in fasta sequence \"", 
 	    $checkAA, 
 	    "\" does not match amino acid in mutation file \"", 
-	    $aaCodeHash{$origAA}, "\"\n";
+	    $aaCodeHash{$origAA}, "\"\n\n";
 		
     }
     # Check that origSeq[2] eq $origAA
