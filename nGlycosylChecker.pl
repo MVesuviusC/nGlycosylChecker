@@ -112,26 +112,56 @@ local $/ = "\n";
 open MUTATIONS, $mutations or die "Cannot open mutation list file\n";
 while(my $line = <MUTATIONS>) {
     chomp $line;
+    
     my ($ntChange, $genPos, $aaChange) = split "\t", $line;
     $aaChange =~ s/^p.//;
+    
     my $pos = substr($aaChange, 3);
     $pos =~ s/...$//;
-    #print STDERR $aaChange, "\t", $pos, "\t";
+    # What if mutation is first or last AA?
+    
+    # get original and mutant proteins from mutation info
     my $origAA = lc(substr($aaChange, 0, 3));
-    #print STDERR $origAA, "\t";
     my $mutAA = lc(substr($aaChange, -3, 3));
-    #print STDERR $mutAA, "\t";
-    my $origSeq = substr($sequence, $pos - 3, 5);
-    #print STDERR $origSeq, "\t";
-    my $mutSeq = substr($sequence, $pos - 3, 2) . $aaCodeHash{$mutAA} . substr($sequence, $pos, 2);
-    #print STDERR $mutSeq, "\n";
-    if($origSeq =~ /N.[XT]/ && $mutSeq !~ /N.[XT]/) {
-	print $line, "\tLost_N-glycosylation_site\n";
-    } elsif($origSeq !~ /N.[XT]/ && $mutSeq =~ /N.[XT]/) {
-	print $line, "\tGained_N-glycosylation_site\n";
+    
+    # Get five five AA sequence surrounding mutated AA (2 on either side)
+    #    - Unless the AA is within 3 of the ends of the sequence, in which case
+    #      grab all sequences within 2 of the mutant (but don't grab from the 
+    #      other end).
+    my $origSeq;
+    if($pos <= 3) {
+	$origSeq = substr($sequence, 0, $pos + 2);
+	print STDERR $line, "\t", $origSeq, "\t", $sequence, "\n";
+    } elsif ((length($sequence) - $pos) <= 3 ) {
+	$origSeq = substr($sequence, $pos - 3, length($sequence) - $pos);
+	print STDERR $line, "\t", $origSeq, "\t", $sequence, "\n";
+    } else {
+	$origSeq = substr($sequence, $pos - 3, 5);
     }
 
+    # Double check that the protein seq. and coordinates line up
+    my $checkAA = substr($sequence, $pos - 1, 1);
+    if( $checkAA ne $aaCodeHash{$origAA}) {
+	print STDERR 
+	    $line, "\t", $origSeq, "\t.", $sequence, ".\n",
+	    "Amino acid in fasta sequence \"", 
+	    $checkAA, 
+	    "\" does not match amino acid in mutation file \"", 
+	    $aaCodeHash{$origAA}, "\"\n";
+		
+    }
+    # Check that origSeq[2] eq $origAA
+    my $mutSeq = substr($sequence, $pos - 3, 2) . $aaCodeHash{$mutAA} . substr($sequence, $pos, 2);
+    if($verbose) {
+	print STDERR $line, "\t", $origSeq, " -> ", $mutSeq, "\n";
+    }
     
+    # Check if glycosylation site changes and print out any that do
+    if($origSeq =~ /N.[ST]/ && $mutSeq !~ /N.[ST]/) {
+	print $line, "\tLost_N-glycosylation_site\t", $origSeq, "->", $mutSeq, "\n";
+    } elsif($origSeq !~ /N.[ST]/ && $mutSeq =~ /N.[ST]/) {
+	print $line, "\tGained_N-glycosylation_site\t", $origSeq, "->", $mutSeq, "\n";
+    }
 }
 
 
