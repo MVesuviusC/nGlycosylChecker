@@ -7,23 +7,22 @@ use Pod::Usage;
 ##############################
 # By Matt Cannon
 # Date: 08/25/16
-# Last modified: 08/25/16
+# Last modified: 08/26/16
 # Title: nGlycosylChecker.pl
-# Purpose: 
+# Purpose: Find mutations that change N-glycosylation sites
 ##############################
 
 ##############################
 # Options
 ##############################
 
-
 my $verbose;
 my $help;
 my $protein;
 my $mutations;
 
-# i = integer, s = string
-GetOptions ("verbose"           => \$verbose,
+GetOptions (
+	    "verbose"           => \$verbose,
             "help"              => \$help,
 	    "protein=s"         => \$protein,
 	    "mutations=s"       => \$mutations        
@@ -31,9 +30,10 @@ GetOptions ("verbose"           => \$verbose,
     or pod2usage(0) && exit;
 
 # print out full usage if asked
-pod2usage(1) && exit if ($help);
+pod2usage(-verbose => 1) && exit if ($help);
 # print out short usage if two required files not provided
-pod2usage(0) && exit if(!defined($protein) || !defined($mutations));
+my $msg = "Please provide both required files\n\n";
+pod2usage(-verbose => 0, -msg => $msg) && exit if(!defined($protein) || !defined($mutations));
 
 ##############################
 # Global variables
@@ -62,8 +62,7 @@ my %aaCodeHash = (
 		  trp => "W",
 		  tyr => "Y"
 		  );
-
-
+my $nGlyRegex = "N[ACDEFGHIKLMNQRSTVWY][ST]";
 
 ##############################
 # Code
@@ -113,12 +112,11 @@ open MUTATIONS, $mutations or die "Cannot open mutation list file\n";
 while(my $line = <MUTATIONS>) {
     chomp $line;
     
-    my ($ntChange, $genPos, $aaChange) = split "\t", $line;
+    my (undef, undef, $aaChange) = split "\t", $line;
     $aaChange =~ s/^p.//;
     
     my $pos = substr($aaChange, 3);
     $pos =~ s/...$//;
-    # What if mutation is first or last AA?
     
     # get original and mutant proteins from mutation info
     my $origAA = lc(substr($aaChange, 0, 3));
@@ -131,10 +129,10 @@ while(my $line = <MUTATIONS>) {
     my $origSeq;
     if($pos <= 3) {
 	$origSeq = substr($sequence, 0, $pos + 2);
-	print STDERR $line, "\t", $origSeq, "\t", $sequence, "\n";
+	#print STDERR $line, "\t", $origSeq, "\t", $sequence, "\n";
     } elsif ((length($sequence) - $pos) <= 3 ) {
 	$origSeq = substr($sequence, $pos - 3, length($sequence) - $pos);
-	print STDERR $line, "\t", $origSeq, "\t", $sequence, "\n";
+	#print STDERR $line, "\t", $origSeq, "\t", $sequence, "\n";
     } else {
 	$origSeq = substr($sequence, $pos - 3, 5);
     }
@@ -143,7 +141,7 @@ while(my $line = <MUTATIONS>) {
     my $checkAA = substr($sequence, $pos - 1, 1);
     if( $checkAA ne $aaCodeHash{$origAA}) {
 	print STDERR 
-	    $line, "\t", $origSeq, "\t.", $sequence, ".\n",
+	    $line, "\t", $origSeq, "\t", $sequence, "\n",
 	    "Amino acid in fasta sequence \"", 
 	    $checkAA, 
 	    "\" does not match amino acid in mutation file \"", 
@@ -157,13 +155,13 @@ while(my $line = <MUTATIONS>) {
     }
     
     # Check if glycosylation site changes and print out any that do
-    if($origSeq =~ /N.[ST]/ && $mutSeq !~ /N.[ST]/) {
+    if($origSeq =~ /$nGlyRegex/ && $mutSeq !~ /$nGlyRegex/) {
 	print $line, "\tLost_N-glycosylation_site\t", $origSeq, "->", $mutSeq, "\n";
-    } elsif($origSeq !~ /N.[ST]/ && $mutSeq =~ /N.[ST]/) {
+    } elsif($origSeq !~ /$nGlyRegex/ && $mutSeq =~ /$nGlyRegex/) {
 	print $line, "\tGained_N-glycosylation_site\t", $origSeq, "->", $mutSeq, "\n";
     }
 }
-
+close MUTATIONS;
 
 
 ##############################
@@ -176,11 +174,11 @@ while(my $line = <MUTATIONS>) {
 
 Summary:    
     
-    nGlycosylChecker.pl - Checks a mutation to see if it adds or removes an N-glycosylation site
+    nGlycosylChecker.pl - Checks a list of mutations to see if they add or remove N-glycosylation sites
     
 Usage:
 
-    perl nGlycosylChecker.pl [options] 
+    perl nGlycosylChecker.pl [options] --protein protein.fa --mutations mutations.txt > output.txt
 
 
 =head OPTIONS
@@ -188,8 +186,21 @@ Usage:
 Options:
 
     --verbose
+
+        Print out additional information to the screen.
+
     --help
+    
+        Print full usage informtion.
+
     --protein
+    
+        Fasta file of single protein sequence.
+
     --mutations
+
+        File containing the mutations to be tested. The first three columns will be included in the output
+        and the third column has to contain the protein change in the format: "p.Ala111Thr". Three letter 
+        amino acid codes must be used. 
 
 =cut
