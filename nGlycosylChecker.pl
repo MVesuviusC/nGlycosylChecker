@@ -208,7 +208,7 @@ Options:
 
     --help
     
-        Print full usage informtion.
+        Print full usage information.
 
     --protein
     
@@ -216,7 +216,7 @@ Options:
 
     --mutations
 
-        File containing the mutations to be tested. The first three columns will be included in the output
+        File containing the mutations to be tested. The input will be included in the output
         and the third column has to contain the protein change in the format: "p.Ala111Thr". Three letter 
         amino acid codes must be used. 
 
