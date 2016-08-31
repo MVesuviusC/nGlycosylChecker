@@ -92,6 +92,7 @@ while(my $line = <PROTEIN>) {
     $sequence =~ s/[\s\t]//g;
     # Make sure they're all uppercase
     $sequence = uc($sequence);
+
     # If any unknown amino acids are in the sequence, die
     if($sequence =~ /[BJOUXZ]/) {
 	print STDERR "Illegal amino acid symbol in protein sequence [BJOUXZ]\n\n";
@@ -100,6 +101,13 @@ while(my $line = <PROTEIN>) {
     ###
     ###########
     $singleSeqCheck = 1;
+
+    # Add 5 spaces to the beginning and end of $sequence
+    # To avoid issues where the mutation is at the beginning
+    # or end of the sequence
+    $sequence = "     " . $sequence . "     ";
+
+
 }
 close PROTEIN;
 
@@ -111,7 +119,6 @@ local $/ = "\n";
 open MUTATIONS, $mutations or die "Cannot open mutation list file\n";
 while(my $line = <MUTATIONS>) {
     chomp $line;
-    
     my (undef, undef, $aaChange) = split "\t", $line;
     $aaChange =~ s/^p.//;
     
@@ -128,6 +135,9 @@ while(my $line = <MUTATIONS>) {
 	print STDERR "\n\n\nError in mutation information!\n", $line, "\n\n\n";
 	die;
     }
+
+    # Add 5 to $pos to make up for five spaces in front of $sequence
+    $pos += 5;
 
     # get original and mutant proteins from mutation info
     my $origAA = lc(substr($aaChange, 0, 3));
@@ -158,7 +168,7 @@ while(my $line = <MUTATIONS>) {
     my $checkAA = substr($sequence, $pos - 1, 1);
     if( $checkAA ne $aaCodeHash{$origAA}) {
 	print STDERR 
-	    $line, "\t", $origSeq, "\t", $sequence, "\n",
+	    $line, "\t", $origSeq, "\t.", $sequence, ".\n",
 	    "Amino acid in fasta sequence \"", 
 	    $checkAA, 
 	    "\" does not match amino acid in mutation file \"", 
@@ -183,13 +193,13 @@ while(my $line = <MUTATIONS>) {
 	my $mutMatch = substr($mutSeq, $-[0], 3);
 	my $origInBack = substr($origSeq, $+[0], length($origSeq) - $+[0]);
 	my $origCombined = 
-	    substr($upStreamSeq . $origInFront, -5, 5) . 
+	    substr($upStreamSeq . $origInFront, -3, 3) . 
 	    "_" . $origMatch . "_" . 
-	    substr($origInBack . $downStreamSeq, 0, 5);
+	    substr($origInBack . $downStreamSeq, 0, 3);
 	my $mutCombined = 
-	    substr($upStreamSeq . $origInFront, -5, 5) .
+	    substr($upStreamSeq . $origInFront, -3, 3) .
 	    "_" . $mutMatch . "_" . 
-	    substr($origInBack . $downStreamSeq, 0, 5);
+	    substr($origInBack . $downStreamSeq, 0, 3);
 	print $line, "\tLost_N-glycosylation_site\t", $origCombined, "->", $mutCombined, "\n";
     } elsif($origSeq !~ /$nGlyRegex/ && $mutSeq =~ /$nGlyRegex/) {
 	my $origInFront = substr($origSeq, 0, $-[0]);
@@ -197,13 +207,13 @@ while(my $line = <MUTATIONS>) {
 	my $mutMatch = substr($mutSeq, $-[0], 3);
 	my $origInBack = substr($origSeq, $+[0], length($origSeq) - $+[0]);
 	my $origCombined = 
-	    substr($upStreamSeq . $origInFront, -5, 5) . 
+	    substr($upStreamSeq . $origInFront, -3, 3) . 
 	    "_" . $origMatch . "_" . 
-	    substr($origInBack . $downStreamSeq, 0, 5);
+	    substr($origInBack . $downStreamSeq, 0, 3);
 	my $mutCombined = 
-	    substr($upStreamSeq . $origInFront, -5, 5) .
+	    substr($upStreamSeq . $origInFront, -3, 3) .
 	    "_" . $mutMatch . "_" . 
-	    substr($origInBack . $downStreamSeq, 0, 5);
+	    substr($origInBack . $downStreamSeq, 0, 3);
 	print $line, "\tGained_N-glycosylation_site\t", $origCombined, "->", $mutCombined, "\n";
     }
 }
