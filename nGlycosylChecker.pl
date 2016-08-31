@@ -7,7 +7,7 @@ use Pod::Usage;
 ##############################
 # By Matt Cannon
 # Date: 08/25/16
-# Last modified: 08/26/16
+# Last modified: 08/30/16
 # Title: nGlycosylChecker.pl
 # Purpose: Find mutations that change N-glycosylation sites
 ##############################
@@ -165,17 +165,46 @@ while(my $line = <MUTATIONS>) {
 	    $aaCodeHash{$origAA}, "\"\n\n";
 		
     }
-    # Check that origSeq[2] eq $origAA
+
+
     my $mutSeq = substr($sequence, $pos - 3, 2) . $aaCodeHash{$mutAA} . substr($sequence, $pos, 2);
+
+    my $upStreamSeq = substr($sequence, $pos - 8, 5);
+    my $downStreamSeq = substr($sequence, $pos + 2, 5);
+
     if($verbose) {
 	print STDERR $line, "\t", $origSeq, " -> ", $mutSeq, "\n";
     }
     
     # Check if glycosylation site changes and print out any that do
     if($origSeq =~ /$nGlyRegex/ && $mutSeq !~ /$nGlyRegex/) {
-	print $line, "\tLost_N-glycosylation_site\t", $origSeq, "->", $mutSeq, "\n";
+	my $origInFront = substr($origSeq, 0, $-[0]);
+	my $origMatch = substr($origSeq, $-[0], 3);
+	my $mutMatch = substr($mutSeq, $-[0], 3);
+	my $origInBack = substr($origSeq, $+[0], length($origSeq) - $+[0]);
+	my $origCombined = 
+	    substr($upStreamSeq . $origInFront, -5, 5) . 
+	    "_" . $origMatch . "_" . 
+	    substr($origInBack . $downStreamSeq, 0, 5);
+	my $mutCombined = 
+	    substr($upStreamSeq . $origInFront, -5, 5) .
+	    "_" . $mutMatch . "_" . 
+	    substr($origInBack . $downStreamSeq, 0, 5);
+	print $line, "\tLost_N-glycosylation_site\t", $origCombined, "->", $mutCombined, "\n";
     } elsif($origSeq !~ /$nGlyRegex/ && $mutSeq =~ /$nGlyRegex/) {
-	print $line, "\tGained_N-glycosylation_site\t", $origSeq, "->", $mutSeq, "\n";
+	my $origInFront = substr($origSeq, 0, $-[0]);
+	my $origMatch = substr($origSeq, $-[0], 3);
+	my $mutMatch = substr($mutSeq, $-[0], 3);
+	my $origInBack = substr($origSeq, $+[0], length($origSeq) - $+[0]);
+	my $origCombined = 
+	    substr($upStreamSeq . $origInFront, -5, 5) . 
+	    "_" . $origMatch . "_" . 
+	    substr($origInBack . $downStreamSeq, 0, 5);
+	my $mutCombined = 
+	    substr($upStreamSeq . $origInFront, -5, 5) .
+	    "_" . $mutMatch . "_" . 
+	    substr($origInBack . $downStreamSeq, 0, 5);
+	print $line, "\tGained_N-glycosylation_site\t", $origCombined, "->", $mutCombined, "\n";
     }
 }
 close MUTATIONS;
