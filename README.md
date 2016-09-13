@@ -30,7 +30,6 @@ perl nGlycosylChecker.pl [options] --protein protein.fa --mutations mutations.tx
 
 - File containing the mutations to be tested. The input will be included in the output and the third column has to contain the protein change in the format: "p.Ala111Thr". Three letter amino acid codes must be used. An example input file is available in the exampleInput folder. 
 
-
 ## Output
 
 The output adds two columns to the mutation input file. 
