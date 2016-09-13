@@ -7,7 +7,7 @@ use Pod::Usage;
 ##############################
 # By Matt Cannon
 # Date: 08/25/16
-# Last modified: 08/30/16
+# Last modified: 09/13/16
 # Title: nGlycosylChecker.pl
 # Purpose: Find mutations that change N-glycosylation sites
 ##############################
@@ -249,11 +249,11 @@ Options:
     
         Print full usage information.
 
-    --protein
+    -p/--protein
     
         Fasta file of single protein sequence.
 
-    --mutations
+    -m/--mutations
 
         File containing the mutations to be tested. The input will be included in the output
         and the third column has to contain the protein change in the format: "p.Ala111Thr". Three letter 
